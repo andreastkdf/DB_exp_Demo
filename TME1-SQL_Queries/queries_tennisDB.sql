@@ -59,3 +59,24 @@ and not exists (select nuPerdant from Rencontre where
     nuPerdant = r.nugagnant and lieutournoi='Roland Garros');
 
 
+-- g
+
+/* Liste des vainqueurs de tournoi, mentionnant le nom du joueur
+ avec le lieu et l'année du tournoi qu'il a gagné */
+ 
+SELECT j.nom, g.lieuTournoi, g.annee
+FROM Joueur j, Gain g
+WHERE j.nuJoueur = g.nuJoueur 
+AND NOT EXISTS 
+(SELECT nugagnant
+FROM Rencontre r
+WHERE r.lieuTournoi = g.lieuTournoi
+AND r.annee = g.annee
+AND r.nuPerdant = j.nuJoueur);
+
+
+-- h
+/* Noms des joueurs ayant participé à tous les tournois en 1994 */
+
+select 
+
