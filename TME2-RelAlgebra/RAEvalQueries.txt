@@ -1,0 +1,114 @@
+--- Relational Algebra Evaluator ---
+
+Steps for RAEval Installation and documentation:
+
+http://www-bd.lip6.fr/wiki/site/enseignement/licence/3i009/tmealgebre
+
+-- DATABASE --
+
+Sponsorise(NSp, NJo, Somme),
+
+Joueur(NJo, Eq, taille, age),
+
+Equipe(NEq, Ville, Couleur, StP)
+
+Match(Eq1, Eq2, Date, St),
+
+Distance(st1, st2, nbkm)
+
+-- QUERIES -- 
+
+a. Quels sont les joueurs (nom, prénom) sponsorisés par Adadis?
+project(select Sponsorise where NSp = "Adadis") over NJo
+
+b. Quelles équipes ont déjà joué au stade préféré de l’équipe des Piépla ? 
+r := project(select Equipe where NEq = "Piepla") over StP
+project(r rename (StP as St) join Match) over Eq1
+
+c. Quels sont les stades où a déjà joué Manon Messi?
+/* L'equipe de Manon Messi */
+r := project(select Joueur where NJo = "Manon Messi") over Eq
+project(r rename(Eq as Eq1) join Match) over St
+
+d. A quelle date a eu lieu un match entre deux équipes sponsorisées par le même sponsor?
+e1 := project(Equipe rename(NEq as Eq) join Joueur join Sponsorise) over Eq, NSp
+e2 := project(Equipe rename(NEq as Eq) join Joueur join Sponsorise) over Eq, NSp
+same_sponsor := select((project(e1 rename(Eq as Eq1) join e2 rename(Eq as Eq2)) over Eq1, NSp, Eq2) where (Eq1 <> Eq2))
+dates_match := project(Match join same_sponsor) over Date
+
+f. Quels sont les joueurs qui ne sont pas sponsorisés par Adadis ?
+a := project(select Sponsorise where NSp = "Adadis") over NJo
+na := (project(Joueur) over NJo) difference (a)
+
+g. Quel est le(s) plus grand(s) joueur(s) sponsorisé par Adadis?
+/* noms des joueurs sponsorisés par Adadis */
+r := project(select Sponsorise where NSp = "Adadis") over NJo
+/* on lie r à la table Joueur puis on projette sur le nom du joueur et sa taille */
+s := project(r join Joueur) over taille, NJo
+/* produit cartésien des joueurs sponsorisés par Adadis 
+	 on sélectionne ceux dont la taille est inférieure à au moins une autre taille 
+	 on projette sur le nom du joueur */
+t := project(select((s rename(taille as taille1)) times (s rename(taille as taille2))) where taille1 < taille2) over NJo
+/* on fait une différence entre les joueurs sponsorisés par adadis par les joueurs sponsorisés par adadis ayant une taille inférieure à au moins un autre joueur */
+u := (project(s) over NJo) difference (t)
+
+h. Quelle équipe n'a jamais joué dans son stade préféré ?
+r := (Equipe) join (Match rename Eq1 as NEq)
+s := select(r where (StP = St))
+t := (project(Equipe) over NEq) difference (project(s) over NEq)
+
+i. A quelle date a lieu un match opposant le plus grand des joueurs au plus petit ?
+joueurs_tailles := project(Joueur) over NJo, taille, Eq
+joueurs_moins_max := project(select((joueurs_tailles rename taille as taille1) times (joueurs_tailles rename taille as taille2)) where taille1 > taille2) over NJo, Eq
+plus_grand_joueur := (project(joueurs_tailles) over NJo, Eq) difference (joueurs_moins_max)
+
+joueurs_moins_min := project(select((joueurs_tailles rename taille as taille1) times (joueurs_tailles rename taille as taille2)) where taille1 < taille2) over NJo, Eq
+plus_petit_joueur := (project(joueurs_tailles) over NJo, Eq) difference (joueurs_moins_min)
+
+equipe_plus_grand := project(plus_grand_joueur rename(Eq as Eq1)) over Eq1
+equipe_plus_petit := project(plus_petit_joueur rename(Eq as Eq2)) over Eq2
+
+dates_match := project(equipe_plus_grand join Match join equipe_plus_petit) over Date 
+
+
+j.quelle equipe a joué dans tous les stades:
+/*division*/
+stade_match := project(Match) over St
+stade_equipe_match := project(Match) over St,Eq1
+division := divide (stade_equipe_match) by (stade_match)
+/*projection:= project(division) over Eq1// normal qu'il n'y a pas de resultat, car Eq1 vide */ 
+
+
+n. Quel joueur de plus de 25 ans a été sponsorisé par tous les sponsors ?
+sponsors := project(Sponsorise) over NSp
+sponsors_joueurs := project(Sponsorise) over NSp, NJo
+division := divide sponsors_joueurs by sponsors
+jointure := Joueur join division
+selection := select jointure where age >= 25
+projection := project(selection) over NJo
+
+/*deuxieme methode  ne marche pas !!!!!!!! :/ */
+sponsors := project(Sponsorise) over NJo
+select_joueurs := select Joueur where age>=25
+division := divide select_joueurs by sponsors
+projection := project (division) over NJo
+
+o. Quel sponsor a sponsorisé au moins un joueur par équipe ?
+jointure_sponsors_joueurs := Joueur join Sponsorise
+jointure_sponsors_equipes := (Equipe rename NEq as Eq) join jointure_sponsors_joueurs
+equipes_sponsors := project(jointure_sponsors_equipes) over Eq, NSp
+division := divide (equipes_sponsors) by (project(Equipe rename NEq as Eq) over Eq)
+
+obis. Quelle équipe a été sponsorisé par tous les sponsors ?
+jointure_sponsors_joueurs := Joueur join Sponsorise
+jointure_sponsors_equipes := (Equipe rename NEq as Eq) join jointure_sponsors_joueurs
+equipes_sponsors := project(jointure_sponsors_equipes) over Eq, NSp
+division := divide (equipes_sponsors) by (project(Sponsorise) over NSp)
+
+ p. Quel sponsor a sponsorisé exactement un joueur par équipe ?
+renommesponsor1 := project(Sponsorise rename NJo as NJo1) over NJo1, NSp
+renommesponsor2 := project(Sponsorise rename NJo as NJo2) over NJo2, NSp
+jointure := renommesponsor1 join renommesponsor2
+selection := select (jointure where NJo1<>NJo2)
+difference := (project(Sponsorise) over NSp) difference (project(selection) over NSp)
+projection := project (difference) over NSp
