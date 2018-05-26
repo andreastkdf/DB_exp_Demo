@@ -1,0 +1,64 @@
+and j1.nujoueur = r1.nugagnant and j2.nujoueur = r2.nugagnant;  7    8                                   
+and r1.nugagnant NOT EXISTS (select                                                                      
+                     *                                                                                   
+ERREUR α la ligne 4 :                                                                                    
+ORA-00920: opΘrateur relationnel non valide                                                              
+                                                                                                         
+                                                                                                         
+SQL> select j1.nom, j2.nom                                                                               
+from  2   Joueur j1, Joueur j2, Rencontre r1, Rencontre r2                                               
+where r1.  3  annee = 1992 and r2.annee = 1992                                                           
+and   4  NOT EXISTS (select                                                                              
+        nuperdant in Rencontre where r1.nug  5  agnant = nuperdant)                                      
+and NOT EXISTS (select                                                                                   
+        nuperdant in Renco  6    7  ntre where r2.nugagnant = nuperdant)                                 
+and j1.nujoueur = r1.  8  nugagnant and j2.nujoueur = r2.nugagnant;                                      
+        nuperdant in Rencontre where r1.nugagnant = nuperdant)                                           
+                  *                                                                                      
+ERREUR α la ligne 5 :                                                                                    
+ORA-00923: mot-clΘ FROM absent α l'emplacement prΘvu                                                     
+                                                                                                         
+                                                                                                         
+SQL> select j1.nom, j2.nom                                                                               
+from Joueur j1, Joueur j2, Rencontre r  2  1, Rencontre r2                                               
+where r1.annee = 1992 and r2.annee = 1992                                                                
+and NOT EXISTS (select                                                                                   
+        nuperdant fr  3    4    5  om Rencontre where r1.nugagnant = nuperdant)                          
+and NOT EXISTS (select                                                                                   
+        nup  6    7  erdant from Rencontre where r2.nugagnant = nuperdant)                               
+and j1.nujoueur = r1.nugagnant and j  8  2.nujoueur = r2.nugagnant;                                      
+                                                                                                         
+aucune ligne sΘlectionnΘe                                                                                
+                                                                                                         
+SQL>  select distinct j.nom, j.prenom from Joueur j, Rencontre r                                         
+  2  where j.nujoueur = r.nugagnant                                                                      
+and r.annee = 1992 and r.lieutournoi = 'Rolan  3  d Garros'                                              
+and not exists (select   4  nuperdant from Rencontre                                                     
+        where r.nugagnant = nuperdant );  5                                                              
+                                                                                                         
+aucune ligne sΘlectionnΘe                                                                                
+                                                                                                         
+SQL> select distinct j.nom, j.prenom from Joueur j, Rencontre r                                          
+where j  2  .nujoueur = r.nugagnant                                                                      
+and  3   r.annee = 1992 and r.lieutournoi = 'Roland Garros'                                              
+and not exists (select * from Rencontre                                                                  
+        where r.nugagnant = nuperdant );  4    5                                                         
+                                                                                                         
+aucune ligne sΘlectionnΘe                                                                                
+                                                                                                         
+SQL>                                                                                                     
+selecSQL> t distinct j.nom, j.prenom from Joueur j, Rencontre r                                          
+where j.nuj  2  oueur = r.nugagnant                                                                      
+and r.annee = 1  3  992 and r.lieutournoi = 'Roland Garros'                                              
+and not exists (select * fr  4  om Rencontre                                                             
+        where r.nugagnant = nuperd  5  ant and annee=1992 and                                            
+        lieutournoi='Roland Garros');  6                                                                 
+                                                                                                         
+NOM          PRENOM                                                                                      
+------------ ------------                                                                                
+McENROE      John                                                                                        
+NAVRATILOVA  Martina                                                                                     
+                                                                                                         
+2 ligne(s) sΘlectionnΘe(s).                                                                              
+                                                                                                         
+SQL>                                                                                                     
