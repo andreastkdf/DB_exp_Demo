@@ -1,0 +1,8 @@
+st1,st2,nbkm
+name,name,number
+GrandArena,Boulodrome,220
+GrandArena,BukHall,330
+GrandArena,Maracanar,124
+Boulodrome,BukHall,40
+Boulodrome,Maracanar,65
+BukHall,Maracanar,180

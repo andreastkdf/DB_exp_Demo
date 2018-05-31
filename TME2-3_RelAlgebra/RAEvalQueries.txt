@@ -75,19 +75,19 @@ dates_match := project(equipe_plus_grand join Match join equipe_plus_petit) over
 
 j.quelle equipe a joué dans tous les stades:
 /*division*/
-stade_match := project(Match) over St
-stade_equipe_match := project(Match) over St,Eq1
-division := divide (stade_equipe_match) by (stade_match)
+stade_match := project(Match) over St;
+stade_equipe_match := project(Match) over St,Eq1;
+division := divide (stade_equipe_match) by (stade_match);
 /*projection:= project(division) over Eq1// normal qu'il n'y a pas de resultat, car Eq1 vide */ 
 
 
 n. Quel joueur de plus de 25 ans a été sponsorisé par tous les sponsors ?
-sponsors := project(Sponsorise) over NSp
-sponsors_joueurs := project(Sponsorise) over NSp, NJo
-division := divide sponsors_joueurs by sponsors
-jointure := Joueur join division
-selection := select jointure where age >= 25
-projection := project(selection) over NJo
+sponsors := project(Sponsorise) over NSp;
+sponsors_joueurs := project(Sponsorise) over NSp, NJo;
+division := divide sponsors_joueurs by sponsors;
+jointure := Joueur join division;
+selection := select jointure where age >= 25;
+projection := project(selection) over NJo;
 
 /*deuxieme methode  ne marche pas !!!!!!!! :/ */
 sponsors := project(Sponsorise) over NJo

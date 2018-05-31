@@ -1,0 +1,20 @@
+﻿Sponsorise := load "foofledata/Sponsorise.csv";
+
+Joueur := load "foofledata/Joueur.csv";
+
+Equipe := load "foofledata/Equipe.csv";
+
+Matchasym := load "foofledata/Match.csv";
+
+Matchmirror := Matchasym rename (Eq1 as Eq3, Eq2 as Eq4);
+Matchmirror := Matchmirror rename (Eq3 as Eq2, Eq4 as Eq1);
+
+
+Match := Matchasym union Matchmirror;
+
+Distanceasym := load "foofledata/Distance.csv";
+
+Distancemirror := Distanceasym rename (st1 as st3, st2 as st4);
+Distancemirror := Distancemirror rename (st3 as st2, st4 as st1);
+
+Distance := Distanceasym union Distancemirror;

@@ -1,0 +1,14 @@
+Eq1,Eq2,Date,St
+name,name,date,name
+Direkt,Piepla,2015-05-12,GrandArena
+Direkt,Fortiches,2015-05-13,Boulodrome
+Direkt,Sabar,2015-06-15,BukHall
+Piepla,Direkt,2015-05-14,GrandArena
+Piepla,Fortiches,2015-06-12,Maracanar
+Piepla,Sabar,2015-05-15,Maracanar
+Sabar,Fortiches,2015-06-13,BukHall
+Sabar,Direkt,2015-07-15,BukHall
+Sabar,Piepla,2015-06-15,Maracanar
+Fortiches,Direkt,2015-06-13,Boulodrome
+Fortiches,Piepla,2015-07-12,Maracanar
+Fortiches,Sabar,2015-07-13,BukHall
