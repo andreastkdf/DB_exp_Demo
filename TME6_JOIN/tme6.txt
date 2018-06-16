@@ -1,0 +1,180 @@
+Exercice préliminaire
+
+EXPLAIN plan FOR
+    SELECT * FROM F;
+@p4
+
+	 J : 50000 n-uplets et coût de 68
+   C : 5000 n-uplets et coût de 7
+   F : 5000 n-uplets et coût de 5
+   
+EXERCICE 1
+
+Question 1
+
+   EXPLAIN plan FOR
+       SELECT J.licence, C.nom
+       FROM J, C
+       WHERE J.cnum = C.cnum
+       AND J.salaire > 1000;
+   @p4
+   
+a) 
+- Lecture des tables J et C
+- Vérification des n-uplets de J et C ayant le même cnum
+- sélection des joueurs ayant un salaire > 1000
+- projection sur les attributs licence du joueur et le nom du club
+
+b) 
+
+P1 :
+
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------
+Plan hash value: 1106137640
+
+----------------------------------------------------------------
+| Id  | Operation	   | Name | Rows  | Bytes | Cost (%CPU)|
+----------------------------------------------------------------
+|   0 | SELECT STATEMENT   |	  | 50000 |  1269K|    76   (2)|
+|*  1 |  HASH JOIN	   |	  | 50000 |  1269K|    76   (2)|
+|   2 |   TABLE ACCESS FULL| C	  |  5000 | 60000 |	7   (0)|
+|*  3 |   TABLE ACCESS FULL| J	  | 50000 |   683K|    68   (0)|
+----------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("J"."CNUM"="C"."CNUM")
+   3 - filter("J"."SALAIRE">1000)
+
+Column Projection Information (identified by operation id):
+-----------------------------------------------------------
+
+   1 - (#keys=1) "C"."NOM"[VARCHAR2,30], "J"."LICENCE"[NUMBER,22]
+   2 - "C"."CNUM"[NUMBER,22], "C"."NOM"[VARCHAR2,30]
+   3 - "J"."LICENCE"[NUMBER,22], "J"."CNUM"[NUMBER,22]
+   
+Nom de l'opérateur de jointure : HASH JOIN
+
+Cf feuille pour arbre
+
+c) J est lue en premier. 
+(?) Comme il y a une sélection sur J, le coût de la jointure sera inférieur (coût (A jointure B) = coût(A) + P(A) * P(B)) car on a diminué le nombre de pages à lire. (?)
+
+d) 76. Coût (selection(J) jointure C)) = coût(selection(J)) + P(J) * P(C) = P(J) + P(J) * P(C)
+
+Question 2 :
+
+   EXPLAIN plan FOR
+       SELECT J.licence, C.nom
+       FROM J, C
+       WHERE J.cnum = C.cnum
+       AND J.salaire < 11000;
+   @p4
+   
+a) 
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------
+Plan hash value: 2111974308
+
+----------------------------------------------------------------
+| Id  | Operation	   | Name | Rows  | Bytes | Cost (%CPU)|
+----------------------------------------------------------------
+|   0 | SELECT STATEMENT   |	  |  1000 | 26000 |    76   (2)|
+|*  1 |  HASH JOIN	   |	  |  1000 | 26000 |    76   (2)|
+|*  2 |   TABLE ACCESS FULL| J	  |  1000 | 14000 |    68   (0)|
+|   3 |   TABLE ACCESS FULL| C	  |  5000 | 60000 |	7   (0)|
+----------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("J"."CNUM"="C"."CNUM")
+   2 - filter("J"."SALAIRE"<11000)
+
+Column Projection Information (identified by operation id):
+-----------------------------------------------------------
+
+   1 - (#keys=1) "J"."LICENCE"[NUMBER,22], "C"."NOM"[VARCHAR2,30]
+   2 - "J"."LICENCE"[NUMBER,22], "J"."CNUM"[NUMBER,22]
+   3 - "C"."CNUM"[NUMBER,22], "C"."NOM"[VARCHAR2,30]
+
+
+cf feuille td
+
+b)
+la table C est lue en première. Comme coût (A jointure B) = coût(A) + P(A) * P(B) et que le nombre de n-uplets dans C est 10 fois inférieur au nombre de n-uplets dans J, et que coût(C) = P(C), alors il est plus avantageux de lire C en premier.
+
+c) 76.
+
+Question 3 :
+
+EXPLAIN plan FOR
+    SELECT J.licence, C.division
+    FROM C, J
+    WHERE J.cnum = C.cnum
+    AND C.nom IN ('PSG', 'Barca');
+@p4
+
+a) P3:
+PLAN_TABLE_OUTPUT
+----------------------------------------------------------------------------------------------------
+Plan hash value: 3923254729
+
+------------------------------------------------------------------------------
+| Id  | Operation		     | Name	| Rows	| Bytes | Cost (%CPU)|
+------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT	     |		|    15 |   360 |    29   (0)|
+|   1 |  NESTED LOOPS		     |		|	|	|	     |
+|   2 |   NESTED LOOPS		     |		|    15 |   360 |    29   (0)|
+|*  3 |    TABLE ACCESS FULL	     | C	|     2 |    30 |     7   (0)|
+|*  4 |    INDEX RANGE SCAN	     | I_J_CNUM |    10 |	|     1   (0)|
+|   5 |   TABLE ACCESS BY INDEX ROWID| J	|    10 |    90 |    11   (0)|
+------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - filter("C"."NOM"='Barca' OR "C"."NOM"='PSG')
+   4 - access("J"."CNUM"="C"."CNUM")
+
+Column Projection Information (identified by operation id):
+-----------------------------------------------------------
+
+   1 - (#keys=0) "C"."DIVISION"[NUMBER,22], "J"."LICENCE"[NUMBER,22]
+   2 - (#keys=0) "C"."DIVISION"[NUMBER,22], "J".ROWID[ROWID,10]
+   3 - "C"."CNUM"[NUMBER,22], "C"."DIVISION"[NUMBER,22]
+   4 - "J".ROWID[ROWID,10]
+   5 - "J"."LICENCE"[NUMBER,22]
+
+Nom de l'opérateur de jointure : NESTED LOOPS
+
+b) 
+pour chaque rowid, division in
+	(Pour chaque tuple de C 
+		faire 
+		  ne garder que ceux dont nom est 'Barca' ou 'PSG'  
+			projeter sur Cnum et division  
+			utiliser cnum pour consulter I_J_CNUM et retourner ainsi le(s) rowid(s) correspondant 
+			projeter rowid, division
+	finpour
+	 )		//7+1
+faire
+	acceder à J en utilisant rowid
+	projeter sur licence de J
+	projeter sur division
+finpour		
+		
+	
+	
+	
+c) 
+cout [ cout(selection_nom sur C) jointure cout(index_cnum sur J) ] =
+			cout(selection_nom sur C) + card(selection_nom sur C) * card(selection_cnum sur J)
+			
+			(?) Trop simpliste ne pas utiliser (?)
+ 
+
+
+
