@@ -1,0 +1,170 @@
+-- EXERCICE 1
+
+-- Q1) ROLLBACK défait les opérations déjà effectuées de la transaction.
+
+-- Q2) Comme autocommit est off et que l'on n'a pas explicitement effectué de commit, en quittant Java DB, les opérations effectuées précédemment ne sont pas validées.
+
+-- Q3) Il faut insérer l'instruction COMMIT.
+
+-- EXERCICES SUR LA CONCURRENCE
+
+-- Rappels :
+-- Les instructions SELECT demandent des verrous partagés
+-- UPDATE, DELETE et INSERT demandent des verrous exclusifs
+-- Le verrouillage est strict, les verrous sont relâchés après commit ou rollback 
+
+-- EXERCICE 2
+-- Première partie : Test du verrouillage
+
+-- Q1) L1(A) L2(A) C1 C2
+T1 : SELECT * FROM Account WHERE acctID = 101; + VP1(A)
+T2 : SELECT * FROM Account WHERE acctID = 101; + VP2(A)
+T1 : commit; -VP1(A)
+T2 : commit; -VP2(A)
+
+-- OK
+
+-- Q2) L1(A) E2(A,100) C1 C2
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A)
+T2 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX2(A) => blocage 
+T1 : COMMIT; -VP1(A) => débloque T2
+T2 : COMMIT; -VX2(A)
+
+-- Q3)
+E1(A, 100) L2(A) C1 C2
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX1(A)
+T2 : SELECT * FROM Account WHERE acctID = 101; VP2(A) => blocage
+T1 : COMMIT; -VX1(A)=> déblocage
+T2 : COMMIT; -VP2(A)
+
+-- Q4) 
+E1(A, 100) E2(A, 100) C1 C2
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX1(A)
+T2 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX2(A) => blocage
+T1 : COMMIT; -VX1(A)=> déblocage
+T2 : COMMIT; -VX2(A)
+
+-- Q5)
+E1(A, 100) E2(B, 100) C1 C2
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX1(A)
+T2 : UPDATE Account SET balance = balance + 100 WHERE acctID = 202; VX2(B)
+T1 : COMMIT; -VX1(A)
+T2 : COMMIT; -VX2(B)
+
+-- Pas de blocage car les instructions manipulent 2 granules différents.
+
+-- Deuxième partie: Verrouillage en deux phases
+-- Exécutions sans interblocage
+
+-- Q6)
+L1(A) E2(A,-500) E1(A, 100) C1 C2
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A)
+T2 : UPDATE Account SET balance = balance - 500 WHERE acctID = 101; VX2(A) => blocage     
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX1(A) 
+T1 : COMMIT; -VX1(A) => déblocage 
+T2 : COMMIT; -VX2(A)
+
+-- L1(A) E1(A, 100) C1 E2(A, -500) C2 
+-- A : 1100
+
+-- Q7)
+-- L1(B) E2(A, -500) E1(A,100) C1 C2
+T1 : SELECT * FROM Account WHERE acctID = 202; VP1(B)
+T2 : UPDATE Account SET balance = balance - 500 WHERE acctID = 101; VX2(A)
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX1(A) 
+T1 : COMMIT; -VX1(A)
+T2 : COMMIT; -VX2(A)
+
+
+-- Q8) 
+-- L2(B) E2(B, -70) L2(C) E2(C, 70) L1(A) E1(A,-150) L1(B) E1(B,150) C1 C2
+T2 : SELECT * FROM Account WHERE acctID = 202; VP2(B)
+T2 : UPDATE Account SET balance = balance - 70 WHERE acctID = 202; VX2(B)
+T2 : SELECT * FROM Account WHERE acctID = 303; VP2(C)
+T2 : UPDATE Account SET balance = balance + 70 WHERE acctID = 303; VX2(C)
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A)
+T1 : UPDATE Account SET balance = balance - 150 WHERE acctID = 101; VX1(A)
+T1 : SELECT * FROM Account WHERE acctID = 202; VP1(B) => blocage 
+T1 : UPDATE Account SET balance = balance + 150 WHERE acctID = 202; VX1(B)
+T1 : COMMIT; 
+T2 : COMMIT; -VX2(C) -VX2(B) -VX1(A) -VX1(B)
+
+-- Exécutions avec interblocage
+
+-- Q9)
+-- E1(A, -150) E2(B, -500) E1(C, 70) E1(B,-500) E2(A, -150) C1 C2
+T1 : UPDATE Account SET balance = balance - 150 WHERE acctID = 101; VX1(A)
+T2 : UPDATE Account SET balance = balance - 500 WHERE acctID = 202; VX2(B)
+T1 : UPDATE Account SET balance = balance + 70 WHERE acctID = 303; VX1(C)
+T1 : UPDATE Account SET balance = balance - 500 WHERE acctID = 202; VX1(B) => blocage
+T2 : UPDATE Account SET balance = balance - 150 WHERE acctID = 101; VX2(A) => blocage => interblocage
+
+-- ERROR 40001: Impossible d'obtenir un verrou en raison d'un interblocage. Le cycle de verrous et de processus en attente est :
+-- Lock : ROW, ACCOUNT, (1,13)
+--   Waiting XID : {287, X} , APP, UPDATE Account SET balance = balance - 150 WHERE acctID = 101
+--   Granted XID : {285, X} 
+-- Lock : ROW, ACCOUNT, (1,14)
+--   Waiting XID : {285, X} , APP, UPDATE Account SET balance = balance - 500 WHERE acctID = 202
+--   Granted XID : {287, X} 
+-- . La victime sélectionnée est le XID : 287.
+
+T1 : COMMIT;
+T2 : COMMIT;
+
+-- Q10) A faire
+
+-- Q11) A faire
+
+-- Exercice 3: Anomalies et niveaux d'isolation SQL-92
+
+-- Q1)
+-- a) 
+-- E1(A, 100) L1(A) L2(A) C2 R1 L1(A) C1
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101;
+T1 : SELECT * FROM Account WHERE acctID = 101;
+T2 : SELECT * FROM Account WHERE acctID = 101; => lecture sale
+T2 : COMMIT;
+T1 : ROLLBACK;
+T1 : SELECT * FROM Account WHERE acctID = 101;
+T1 : COMMIT; 
+
+-- T2 n'est pas fiable car il fait lecture sale.
+-- le niveau READ UNCOMMITTED fait comme si il n'y avait pas de verrou.
+
+-- b) 
+-- E1(A, 100) L1(A) L2(A) C2 R1 L1(A) C1
+T1 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX1(A)
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A)
+T2 : SELECT * FROM Account WHERE acctID = 101; VP2(A) => blocage
+T2 : COMMIT; -VP2(A)
+T1 : ROLLBACK; -VX1(A) -VP1(A) => déblocage et pas de lecture sale
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A)
+T1 : COMMIT; -VP1(A)
+
+-- T2 ne voit plus l'écriture faite par T1 car T1 fait un ROLLBACK.
+
+-- Q2)
+-- Lecture non reproductible: la relecture de la même ligne dans la même transaction peut montrer un résultat différent.
+
+-- a)
+-- L1(A) E2(A, 100) C2 L1(A) C1
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A) => 400
+T2 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX2(A)
+T2 : COMMIT;
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A) => 500
+T1 : COMMIT;
+
+-- READ COMMITTED permet à T2 d'écrire sur A alors que T1 a déjà lu mais n'a pas effectué de commit.
+
+-- b) 
+L1(A) E2(A, 100) C2 L1(A) C1
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A) => 500
+T2 : UPDATE Account SET balance = balance + 100 WHERE acctID = 101; VX2(A) => blocage
+T2 : COMMIT; 
+T1 : SELECT * FROM Account WHERE acctID = 101; VP1(A) => 500
+T1 : COMMIT; -VP1(A) -VX2(A) => déblocage puis compte(A) = 600
+
+
+
+
+
